@@ -1,4 +1,4 @@
-import { useRef, useCallback, useMemo, useState } from 'react';
+import { useRef, useCallback, useMemo, useState, Component, type ReactNode } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Text } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
@@ -13,6 +13,30 @@ import { DayNightCycle } from './DayNightCycle';
 import { WeatherEffects } from './WeatherEffects';
 import { Toy3D } from './Toy3D';
 import { DEFAULT_TOYS } from '@/store/gameStore';
+
+// Error Boundary to prevent Canvas crash from GLTF loading errors
+class CanvasErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: string }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: '' };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error: error.message };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80">
+          <div className="text-center text-white">
+            <p className="text-xl font-bold mb-2">渲染出错</p>
+            <p className="text-sm text-gray-400">{this.state.error}</p>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 /** Stars effect for night background */
 function StarsEffect() {
@@ -179,6 +203,7 @@ export function GameScene() {
         shadows
         camera={{ position: [8, 6, 8], fov: 50, near: 0.1, far: 100 }}
       >
+        <CanvasErrorBoundary>
         {/* Day/Night Cycle - controls all lighting */}
         <DayNightCycle />
 
@@ -267,6 +292,7 @@ export function GameScene() {
           maxPolarAngle={Math.PI / 2.2}
           target={[0, 0, 0]}
         />
+        </CanvasErrorBoundary>
       </Canvas>
 
       {/* Sky overlay for background tint */}
