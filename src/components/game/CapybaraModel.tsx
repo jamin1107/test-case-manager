@@ -84,22 +84,24 @@ function GLBCapybara({ animation, onClick, scale = 1 }: {
     const g = groupRef.current;
     if (!g) return;
 
-    if (animation === 'walking' || animation === 'running') {
-      const speed = animation === 'running' ? 8 : 4;
-      g.position.y += Math.sin(t * speed) * 0.008;
-    }
-    if (animation === 'happy') {
+    // Reset local Y offset each frame (parent group handles world position)
+    g.position.y = 0;
+
+    if (animation === 'sleeping') {
+      g.position.y = -0.08 + Math.sin(t * 0.8) * 0.002;
+    } else if (animation === 'sleepy') {
+      g.position.y = -0.05 + Math.sin(t * 1) * 0.003;
+    } else if (animation === 'resting') {
+      g.position.y = -0.04 + Math.sin(t * 1) * 0.003;
+    } else if (animation === 'happy') {
       g.position.y = Math.abs(Math.sin(t * 6)) * 0.12;
       g.rotation.y += Math.sin(t * 3) * 0.02;
-    }
-    if (animation === 'idle' || animation === 'resting') {
-      g.position.y += Math.sin(t * 1.5) * 0.003;
-    }
-    if (animation === 'resting') {
-      g.position.y = THREE.MathUtils.lerp(g.position.y, -0.05, delta * 3);
-    }
-    if (animation === 'sleeping') {
-      g.position.y = THREE.MathUtils.lerp(g.position.y, -0.08, delta * 3);
+    } else if (animation === 'walking' || animation === 'running') {
+      const speed = animation === 'running' ? 8 : 4;
+      g.position.y = Math.abs(Math.sin(t * speed)) * 0.03;
+    } else {
+      // idle, eating, bathing, etc.
+      g.position.y = Math.sin(t * 1.5) * 0.003;
     }
   });
 
