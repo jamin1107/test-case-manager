@@ -1,10 +1,9 @@
-import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useRef, useEffect, useState, useCallback } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three-stdlib';
 import type { CapybaraAnimation } from '@/types/game';
 
-// Vite 会处理这个 import 并生成正确的路径（带 base path）
 import capybaraModel from '@/assets/capybara.glb?url';
 
 interface CapybaraModelProps {
@@ -15,9 +14,8 @@ interface CapybaraModelProps {
   accessories?: string[];
 }
 
-// ============================================
-// GLB Model - imperative loading with full error handling and debug
-// ============================================
+// jsDelivr CDN mirrors GitHub files - much faster in China
+const GLB_CDN_URL = 'https://cdn.jsdelivr.net/gh/jamin1107/capybara-zoo@main/src/assets/capybara.glb';
 
 function GLBCapybara({ animation, onClick, scale = 1 }: {
   animation: CapybaraAnimation;
@@ -26,72 +24,60 @@ function GLBCapybara({ animation, onClick, scale = 1 }: {
 }) {
   const groupRef = useRef<THREE.Group>(null!);
   const [model, setModel] = useState<THREE.Object3D | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    const loader = new GLTFLoader();
+    let timeoutId: number;
 
-    console.log('[GLB] Starting to load:', capybaraModel);
+    const tryLoad = (url: string, isRetry: boolean = false) => {
+      const loader = new GLTFLoader();
 
-    loader.load(
-      capybaraModel,
-      (gltf) => {
-        if (cancelled) return;
+      // Timeout: abort if loading takes > 15 seconds
+      timeoutId = window.setTimeout(() => {
+        if (!cancelled) {
+          if (!isRetry) {
+            console.warn('[GLB] Load timeout, trying CDN fallback');
+            tryLoad(GLB_CDN_URL, true);
+          } else {
+            console.error('[GLB] CDN also timed out');
+            setLoadError(true);
+          }
+        }
+      }, 15000);
 
-        console.log('[GLB] Loaded successfully!');
-
-        // Log model info for debugging
-        const box = new THREE.Box3().setFromObject(gltf.scene);
-        console.log('[GLB] Bounding box:', {
-          min: [box.min.x.toFixed(2), box.min.y.toFixed(2), box.min.z.toFixed(2)],
-          max: [box.max.x.toFixed(2), box.max.y.toFixed(2), box.max.z.toFixed(2)],
-          size: [
-            (box.max.x - box.min.x).toFixed(2),
-            (box.max.y - box.min.y).toFixed(2),
-            (box.max.z - box.min.z).toFixed(2)
-          ],
-          center: [
-            ((box.max.x + box.min.x) / 2).toFixed(2),
-            ((box.max.y + box.min.y) / 2).toFixed(2),
-            ((box.max.z + box.min.z) / 2).toFixed(2)
-          ]
-        });
-
-        // Log materials
-        const materials: string[] = [];
-        gltf.scene.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            if (child.material) {
-              materials.push(child.material.type);
+      loader.load(
+        url,
+        (gltf) => {
+          clearTimeout(timeoutId);
+          if (cancelled) return;
+          gltf.scene.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
               child.castShadow = true;
               child.receiveShadow = true;
             }
+          });
+          setModel(gltf.scene);
+        },
+        undefined,
+        (err) => {
+          clearTimeout(timeoutId);
+          if (cancelled) return;
+          if (!isRetry) {
+            console.warn('[GLB] Primary load failed, trying CDN:', err);
+            tryLoad(GLB_CDN_URL, true);
+          } else {
+            console.error('[GLB] All load attempts failed:', err);
+            setLoadError(true);
           }
-        });
-        console.log('[GLB] Materials:', materials);
-        console.log('[GLB] Children count:', gltf.scene.children.length);
-
-        // Store the model
-        setModel(gltf.scene);
-      },
-      (progress) => {
-        if (progress.total > 0) {
-          console.log(`[GLB] Loading: ${(progress.loaded / progress.total * 100).toFixed(0)}%`);
         }
-      },
-      (err) => {
-        if (cancelled) return;
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error('[GLB] Load error:', msg);
-        setError(msg);
-      }
-    );
+      );
+    };
 
-    return () => { cancelled = true; };
+    tryLoad(capybaraModel);
+    return () => { cancelled = true; clearTimeout(timeoutId); };
   }, []);
 
-  // Animation frame updates
   useFrame((state, delta) => {
     const t = state.clock.getElapsedTime();
     const g = groupRef.current;
@@ -121,16 +107,26 @@ function GLBCapybara({ animation, onClick, scale = 1 }: {
     onClick?.();
   }, [onClick]);
 
-  if (error) {
-    console.warn('[GLB] Failed to load:', error);
-    return null;
+  if (loadError) {
+    return (
+      <group ref={groupRef} onClick={handleClick}>
+        <mesh castShadow position={[0, 0.5, 0]}>
+          <boxGeometry args={[0.6, 0.5, 1.0]} />
+          <meshStandardMaterial color="#8B5E3C" />
+        </mesh>
+        <mesh castShadow position={[0, 0.85, 0.35]}>
+          <boxGeometry args={[0.4, 0.35, 0.35]} />
+          <meshStandardMaterial color="#8B5E3C" />
+        </mesh>
+        <mesh castShadow position={[0, 0.2, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <capsuleGeometry args={[0.12, 0.3, 4, 8]} />
+          <meshStandardMaterial color="#6B4E2C" />
+        </mesh>
+      </group>
+    );
   }
 
-  if (!model) {
-    return null; // Still loading - show nothing until ready
-  }
-
-  console.log('[GLB] Rendering model with scale:', scale * 0.8);
+  if (!model) return null;
 
   return (
     <group ref={groupRef} onClick={handleClick}>
@@ -138,10 +134,6 @@ function GLBCapybara({ animation, onClick, scale = 1 }: {
     </group>
   );
 }
-
-// ============================================
-// Main Export
-// ============================================
 
 export function CapybaraModelWithFallback(props: CapybaraModelProps) {
   return <GLBCapybara {...props} />;

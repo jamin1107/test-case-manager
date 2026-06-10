@@ -14,10 +14,16 @@ import { DiseaseIndicator } from '@/components/ui/DiseaseIndicator';
 import { CameraSystem } from '@/components/ui/CameraSystem';
 import { useGameStore } from '@/store/gameStore';
 import { useState, useCallback } from 'react';
+import { LaunchPage } from './LaunchPage';
 
 export function GamePage() {
   const farmMode = useGameStore((s) => s.farmMode);
+  const [gameStarted, setGameStarted] = useState(false);
   const [cameraMode, setCameraMode] = useState(false);
+
+  const handleGameStart = useCallback(() => {
+    setGameStarted(true);
+  }, []);
 
   const toggleCameraMode = useCallback(() => {
     setCameraMode((prev) => !prev);
@@ -26,6 +32,11 @@ export function GamePage() {
   const exitCameraMode = useCallback(() => {
     setCameraMode(false);
   }, []);
+
+  // Show launch page until GLB model is loaded
+  if (!gameStarted) {
+    return <LaunchPage onStart={handleGameStart} />;
+  }
 
   return (
     <div className="w-screen h-screen overflow-hidden relative">
@@ -65,7 +76,7 @@ export function GamePage() {
             className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-white hover:scale-110 active:scale-95 transition-all"
             title="拍照模式"
           >
-            <span className="text-xl">📷</span>
+            <span className="text-xl"></span>
           </button>
         </div>
       )}
