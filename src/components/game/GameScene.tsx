@@ -199,101 +199,101 @@ export function GameScene() {
 
   return (
     <div className="absolute inset-0">
-      <Canvas
-        shadows
-        camera={{ position: [8, 6, 8], fov: 50, near: 0.1, far: 100 }}
-      >
-        <CanvasErrorBoundary>
-        {/* Day/Night Cycle - controls all lighting */}
-        <DayNightCycle />
+      <CanvasErrorBoundary>
+        <Canvas
+          shadows
+          camera={{ position: [8, 6, 8], fov: 50, near: 0.1, far: 100 }}
+        >
+          {/* Day/Night Cycle - controls all lighting */}
+          <DayNightCycle />
 
-        {/* Weather Effects */}
-        <WeatherEffects />
+          {/* Weather Effects */}
+          <WeatherEffects />
 
-        {/* Environment */}
-        <Environment />
+          {/* Environment */}
+          <Environment />
 
-        {/* AI Controller */}
-        <CapybaraAI />
+          {/* AI Controller */}
+          <CapybaraAI />
 
-        {/* Night stars - shown during night hours */}
-        <NightStars />
+          {/* Night stars - shown during night hours */}
+          <NightStars />
 
-        {/* Snow particles */}
-        <SnowConditional />
+          {/* Snow particles */}
+          <SnowConditional />
 
-        {/* Ground click handlers */}
-        <GroundClickHandler />
-        <DecorationGroundClickHandler />
-        <ToyThrowClickHandler />
+          {/* Ground click handlers */}
+          <GroundClickHandler />
+          <DecorationGroundClickHandler />
+          <ToyThrowClickHandler />
 
-        {/* Food on ground */}
-        {foodOnGround.map((food) => (
-          <FoodItem
-            key={food.id}
-            position={food.position}
-            icon={food.icon}
-            foodId={food.id}
-          />
-        ))}
-
-        {/* Toys in scene */}
-        {toysInScene.map((toy) => {
-          const type = toyDataMap[toy.toyId] || 'ball';
-          return (
-            <Toy3D
-              key={toy.id}
-              id={toy.id}
-              type={type as any}
-              position={toy.position}
+          {/* Food on ground */}
+          {foodOnGround.map((food) => (
+            <FoodItem
+              key={food.id}
+              position={food.position}
+              icon={food.icon}
+              foodId={food.id}
             />
-          );
-        })}
+          ))}
 
-        {/* Placed decorations */}
-        {placedDecorations.map((decoration) => (
-          <Decoration3D
-            key={decoration.id}
-            model={decoration.model}
-            position={decoration.position!}
-          />
-        ))}
+          {/* Toys in scene */}
+          {toysInScene.map((toy) => {
+            const type = toyDataMap[toy.toyId] || 'ball';
+            return (
+              <Toy3D
+                key={toy.id}
+                id={toy.id}
+                type={type as any}
+                position={toy.position}
+              />
+            );
+          })}
 
-        {/* Capybaras */}
-        {capybaras.map((capybara) => (
-          <group
-            key={capybara.id}
-            position={capybara.position}
-            rotation-y={capybara.rotation || 0}
-          >
-            <CapybaraModelWithFallback
-              animation={capybara.currentAnimation}
-              onClick={() => selectCapybara(capybara.id)}
-              scale={getScaleForGrowthStage(capybara.growthStage)}
-              furColor={capybara.furColor}
-              accessories={capybara.accessories}
+          {/* Placed decorations */}
+          {placedDecorations.map((decoration) => (
+            <Decoration3D
+              key={decoration.id}
+              model={decoration.model}
+              position={decoration.position!}
             />
-          </group>
-        ))}
+          ))}
 
-        {/* Farm grid */}
-        <FarmScene />
+          {/* Capybaras */}
+          {capybaras.map((capybara) => (
+            <group
+              key={capybara.id}
+              position={capybara.position}
+              rotation-y={capybara.rotation || 0}
+            >
+              <CapybaraModelWithFallback
+                animation={capybara.currentAnimation}
+                onClick={() => selectCapybara(capybara.id)}
+                scale={getScaleForGrowthStage(capybara.growthStage)}
+                furColor={capybara.furColor}
+                accessories={capybara.accessories}
+              />
+            </group>
+          ))}
 
-        {/* Post-processing */}
-        <PostProcessingEffects />
+          {/* Farm grid */}
+          <FarmScene />
 
-        {/* Camera controls */}
-        <OrbitControls
-          enablePan={true}
-          enableZoom={true}
-          enableRotate={true}
-          minDistance={5}
-          maxDistance={25}
-          maxPolarAngle={Math.PI / 2.2}
-          target={[0, 0, 0]}
-        />
-        </CanvasErrorBoundary>
-      </Canvas>
+          {/* Post-processing */}
+          <PostProcessingEffects />
+
+          {/* Camera controls */}
+          <OrbitControls
+            enablePan={true}
+            enableZoom={true}
+            enableRotate={true}
+            minDistance={5}
+            maxDistance={25}
+            maxPolarAngle={Math.PI / 2.2}
+            target={[0, 0, 0]}
+          />
+        </Canvas>
+      </CanvasErrorBoundary>
 
       {/* Sky overlay for background tint */}
       <SkyOverlay />
