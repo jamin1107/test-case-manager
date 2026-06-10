@@ -1,6 +1,4 @@
-import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
-import { CapybaraEditor } from './CapybaraEditor';
 
 function ProgressBar({
   icon,
@@ -33,8 +31,6 @@ export function StatusCard() {
   const interactCapybara = useGameStore((state) => state.interactCapybara);
   const selectedFoodId = useGameStore((state) => state.selectedFoodId);
   const selectFood = useGameStore((state) => state.selectFood);
-
-  const [editorOpen, setEditorOpen] = useState(false);
 
   const capybara = capybaras.find((c) => c.id === selectedCapybaraId);
 
@@ -75,12 +71,6 @@ export function StatusCard() {
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <button
-              onClick={() => setEditorOpen(true)}
-              className="text-xs px-2 py-1 rounded-lg bg-[#FFF0E0] text-[#8D6E63] hover:bg-[#FFE0C0] transition-colors font-medium"
-            >
-              编辑
-            </button>
             <button
               onClick={() => selectCapybara(null)}
               className="text-gray-400 hover:text-gray-600 text-lg"
@@ -162,10 +152,6 @@ export function StatusCard() {
           </button>
         )}
       </div>
-
-      {editorOpen && selectedCapybaraId && (
-        <CapybaraEditor capybaraId={selectedCapybaraId} onClose={() => setEditorOpen(false)} />
-      )}
     </div>
   );
 }
