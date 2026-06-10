@@ -1,9 +1,0 @@
-{
-    "api_type": "doubao",
-    "api_base": "https://ark.cn-beijing.volces.com/api/v3",
-    "api_endpoint": "/responses",
-    "api_key": "cf333074-4754-4774-9505-b0dd8244661a",
-    "model": "ep-20260424201730-fslkp",
-    "temperature": 0.7,
-    "max_tokens": 6000
-}
