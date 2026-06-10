@@ -307,10 +307,10 @@ export function GameScene() {
 
 function getScaleForGrowthStage(stage: string): number {
   switch (stage) {
-    case 'baby': return 0.8;
-    case 'teen': return 1.1;
-    case 'adult': return 1.5;
-    default: return 1.5;
+    case 'baby': return 0.3;
+    case 'teen': return 0.45;
+    case 'adult': return 0.6;
+    default: return 0.6;
   }
 }
 
