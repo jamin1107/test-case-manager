@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { saveToDB, loadFromDB, exportSaveJSON, importSaveJSON } from '@/utils/saveSystem';
 
 export function SaveManager() {
+  const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
@@ -62,52 +63,70 @@ export function SaveManager() {
 
   return (
     <div className="absolute bottom-4 left-4 z-10">
-      <div className="bg-white/80 backdrop-blur-md rounded-xl p-3 shadow-lg w-48">
-        <div className="flex items-center gap-1.5 mb-2">
-          <span className="text-xs">💾</span>
-          <span className="text-xs font-medium text-[#5D4037]">自动保存中</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-        </div>
+      {/* Toggle button */}
+      <button
+        onClick={() => setOpen(!open)}
+        className="mb-2 flex items-center gap-1 bg-white/80 backdrop-blur-md rounded-full px-2.5 py-1.5 shadow-lg hover:bg-white transition-colors"
+      >
+        <span className="text-xs">💾</span>
+        <span className="text-xs font-medium text-[#5D4037]">存档</span>
+        <svg
+          width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+          className={`transition-transform ${open ? 'rotate-180' : ''}`}
+        >
+          <polyline points="2 4 6 8 10 4" />
+        </svg>
+      </button>
 
-        <div className="space-y-1.5">
-          <button
-            onClick={handleManualSave}
-            disabled={saving}
-            className="w-full text-xs px-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors disabled:opacity-50"
-          >
-            {saving ? '保存中...' : '手动保存'}
-          </button>
-
-          <button
-            onClick={handleLoad}
-            disabled={loading}
-            className="w-full text-xs px-2 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg transition-colors disabled:opacity-50"
-          >
-            {loading ? '加载中...' : '加载存档'}
-          </button>
-
-          <div className="flex gap-1.5">
-            <button
-              onClick={handleExport}
-              className="flex-1 text-xs px-2 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors"
-            >
-              导出存档
-            </button>
-            <button
-              onClick={handleImport}
-              className="flex-1 text-xs px-2 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg transition-colors"
-            >
-              导入存档
-            </button>
+      {/* Panel */}
+      {open && (
+        <div className="bg-white/80 backdrop-blur-md rounded-xl p-3 shadow-lg w-48">
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className="text-xs">💾</span>
+            <span className="text-xs font-medium text-[#5D4037]">自动保存中</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
           </div>
-        </div>
 
-        {status && (
-          <div className="mt-1.5 text-xs text-center text-green-600 font-medium">
-            {status}
+          <div className="space-y-1.5">
+            <button
+              onClick={handleManualSave}
+              disabled={saving}
+              className="w-full text-xs px-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {saving ? '保存中...' : '手动保存'}
+            </button>
+
+            <button
+              onClick={handleLoad}
+              disabled={loading}
+              className="w-full text-xs px-2 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {loading ? '加载中...' : '加载存档'}
+            </button>
+
+            <div className="flex gap-1.5">
+              <button
+                onClick={handleExport}
+                className="flex-1 text-xs px-2 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors"
+              >
+                导出存档
+              </button>
+              <button
+                onClick={handleImport}
+                className="flex-1 text-xs px-2 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg transition-colors"
+              >
+                导入存档
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+
+          {status && (
+            <div className="mt-1.5 text-xs text-center text-green-600 font-medium">
+              {status}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

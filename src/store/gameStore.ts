@@ -129,6 +129,25 @@ function distanceTo(pos1: [number, number, number], pos2: [number, number, numbe
 
 let foodIdCounter = 0;
 
+// Helper: apply level-up logic to a capybara after gaining experience
+function applyLevelUp(c: Capybara): Capybara {
+  let capy = { ...c };
+  while (capy.experience >= capy.maxExp) {
+    capy.experience -= capy.maxExp;
+    capy.level += 1;
+    capy.maxExp = Math.floor(capy.maxExp * 1.2);
+    // Age-based growth stage
+    if (capy.age < 15) {
+      capy.growthStage = 'baby';
+    } else if (capy.age < 40) {
+      capy.growthStage = 'teen';
+    } else {
+      capy.growthStage = 'adult';
+    }
+  }
+  return capy;
+}
+
 export const useGameStore = create<GameStore>()((set, get) => ({
   gold: 200,
   capybaras: initialCapybaras,
@@ -168,14 +187,14 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     set({
       capybaras: capybaras.map((c) =>
         c.id === capybaraId
-          ? {
+          ? applyLevelUp({
               ...c,
               hunger: Math.min(100, c.hunger + food.hungerRestore),
               thirst: Math.min(100, c.thirst + 10),
               mood: Math.min(100, c.mood + food.moodBoost),
               experience: c.experience + 10,
               currentAnimation: 'eating' as const,
-            }
+            })
           : c
       ),
       gold: get().gold + food.goldReward,
@@ -223,12 +242,12 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     set({
       capybaras: capybaras.map((c) =>
         c.id === capybaraId
-          ? {
+          ? applyLevelUp({
               ...c,
               mood: Math.min(100, c.mood + moodBoost),
               experience: c.experience + expGain,
               currentAnimation: animation,
-            }
+            })
           : c
       ),
       gold: gold + goldGain,
@@ -504,6 +523,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
               c.hunger = Math.min(100, c.hunger + foodData.hungerRestore);
               c.mood = Math.min(100, c.mood + foodData.moodBoost);
               c.experience += 10;
+              c = applyLevelUp(c);
               // 移除食物
               set((state) => ({
                 gold: state.gold + foodData.goldReward,
@@ -890,12 +910,12 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     set({
       capybaras: capybaras.map((c) =>
         c.id === capybaraId
-          ? {
+          ? applyLevelUp({
               ...c,
               mood: Math.min(100, c.mood + moodBoost),
               experience: c.experience + 5,
               currentAnimation: animation,
-            }
+            })
           : c
       ),
     });
@@ -914,13 +934,13 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     set({
       capybaras: capybaras.map((c) =>
         c.id === capybaraId
-          ? {
+          ? applyLevelUp({
               ...c,
               cleanliness: Math.min(100, c.cleanliness + 30),
               mood: Math.min(100, c.mood + 5),
               experience: c.experience + 8,
               currentAnimation: 'bathing' as CapybaraAnimation,
-            }
+            })
           : c
       ),
     });
@@ -971,12 +991,12 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     set({
       capybaras: capybaras.map((c) =>
         c.id === capybaraId
-          ? {
+          ? applyLevelUp({
               ...c,
               health: 'healthy' as CapybaraHealth,
               mood: Math.min(100, c.mood + 10),
               experience: c.experience + 5,
-            }
+            })
           : c
       ),
     });
@@ -1198,13 +1218,13 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     set({
       capybaras: capybaras.map((c) =>
         c.id === capybaraId
-          ? {
+          ? applyLevelUp({
               ...c,
               mood: Math.min(100, c.mood + moodBoost),
               energy: Math.max(0, c.energy - energyCost),
               experience: c.experience + 8,
               currentAnimation: animation,
-            }
+            })
           : c
       ),
     });
@@ -1284,7 +1304,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
             break;
         }
 
-        return {
+        return applyLevelUp({
           ...c,
           currentAnimation: animation,
           mood: Math.min(100, c.mood + 10),
@@ -1292,7 +1312,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
           learnedCommands: c.learnedCommands.map((cm) =>
             cm.type === commandType ? { ...cm, timesPerformed: cm.timesPerformed + 1 } : cm
           ),
-        };
+        });
       }),
     });
 

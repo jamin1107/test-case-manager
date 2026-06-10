@@ -4,7 +4,7 @@ import path from 'path'
 import { traeBadgePlugin } from 'vite-plugin-trae-solo-badge';
 
 export default defineConfig({
-  base: '/capybara-zoo/',
+  base: '/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
