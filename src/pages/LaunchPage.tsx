@@ -1,20 +1,48 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { GLTFLoader } from 'three-stdlib';
 
 interface LaunchPageProps {
   onStart: () => void;
 }
 
-// Stable path: GLB in public/ directory (no hash)
 const GLB_PUBLIC_PATH = `${import.meta.env.BASE_URL}capybara.glb`;
+const GLB_CDN_URL = 'https://cdn.jsdelivr.net/gh/jamin1107/capybara-zoo@main/public/capybara.glb';
 
 export function LaunchPage({ onStart }: LaunchPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState('');
-  const [retryCount, setRetryCount] = useState(0);
+  const [glbUrl, setGlbUrl] = useState<string | null>(null);
+  const [speedTestDone, setSpeedTestDone] = useState(false);
 
-  const loadModel = useCallback((onComplete: () => void) => {
+  // Speed test: compare GitHub Pages vs jsDelivr CDN
+  useEffect(() => {
+    const testSpeed = async () => {
+      const results: { name: string; url: string; ms: number }[] = [];
+
+      for (const { name, url } of [
+        { name: 'GitHub Pages', url: GLB_PUBLIC_PATH },
+        { name: 'jsDelivr CDN', url: GLB_CDN_URL },
+      ]) {
+        try {
+          const start = performance.now();
+          await fetch(url, { method: 'HEAD' });
+          results.push({ name, url, ms: Math.round(performance.now() - start) });
+        } catch {
+          results.push({ name, url, ms: Infinity });
+        }
+      }
+
+      const faster = results.reduce((a, b) => (a.ms < b.ms ? a : b));
+      console.log('[GLB Speed Test]', results, '→ Winner:', faster.name, faster.ms, 'ms');
+      setGlbUrl(faster.url);
+      setSpeedTestDone(true);
+    };
+
+    testSpeed();
+  }, []);
+
+  const loadModel = useCallback((url: string, onComplete: () => void) => {
     const loader = new GLTFLoader();
     setStatusText('正在加载卡皮巴拉模型...');
     setProgress(0);
@@ -22,22 +50,18 @@ export function LaunchPage({ onStart }: LaunchPageProps) {
     let timeoutId: number;
 
     const tryLoad = () => {
-      // 60s timeout
       timeoutId = window.setTimeout(() => {
         console.warn('[GLB] Load timeout after 60s, retrying...');
-        setRetryCount((c) => c + 1);
         tryLoad();
       }, 60000);
 
       loader.load(
-        GLB_PUBLIC_PATH,
+        url,
         () => {
           clearTimeout(timeoutId);
           setProgress(100);
           setStatusText('加载完成！即将进入游戏...');
-          setTimeout(() => {
-            onComplete();
-          }, 600);
+          setTimeout(() => onComplete(), 600);
         },
         (xhr) => {
           if (xhr.total > 0) {
@@ -50,9 +74,8 @@ export function LaunchPage({ onStart }: LaunchPageProps) {
         },
         () => {
           clearTimeout(timeoutId);
-          console.warn('[GLB] Load failed, retrying...');
-          setRetryCount((c) => c + 1);
-          setStatusText(`加载失败，正在重试 (第 ${retryCount + 1} 次)...`);
+          console.warn('[GLB] Load failed, retrying in 3s...');
+          setStatusText('加载失败，正在重试...');
           setTimeout(tryLoad, 3000);
         }
       );
@@ -60,34 +83,36 @@ export function LaunchPage({ onStart }: LaunchPageProps) {
 
     tryLoad();
     return () => { clearTimeout(timeoutId); };
-  }, [retryCount]);
+  }, []);
 
   const handleStart = useCallback(() => {
     setIsLoading(true);
-    loadModel(() => {
+    const url = glbUrl || GLB_PUBLIC_PATH; // fallback to GitHub Pages if test not done yet
+    loadModel(url, () => {
       onStart();
     });
-  }, [onStart, loadModel]);
+  }, [onStart, glbUrl, loadModel]);
 
   return (
     <div className="absolute inset-0 overflow-hidden select-none">
-      {/* Splash image as full background */}
-      <img
-        src={`${import.meta.env.BASE_URL}splash.png`}
-        alt="卡皮巴拉养成记"
-        className="absolute inset-0 w-full h-full object-cover"
-        onError={(e) => {
-          // Fallback to CSS gradient if image fails
-          (e.currentTarget as HTMLImageElement).style.display = 'none';
-          const parent = (e.currentTarget as HTMLImageElement).parentElement;
-          if (parent) {
-            parent.style.background = 'linear-gradient(to bottom, #87CEEB 0%, #98D8C8 40%, #7BC67E 70%, #5DAF62 100%)';
-          }
-        }}
-      />
+      {/* Splash image */}
+      <div className="absolute inset-0">
+        <img
+          src={`${import.meta.env.BASE_URL}splash.png`}
+          alt="卡皮巴拉养成记"
+          className="w-full h-full object-cover"
+        />
+        {/* Mask bottom-right "豆包AI生成" */}
+        <div
+          className="absolute bottom-0 right-0 w-28 h-8"
+          style={{
+            background: 'linear-gradient(to top left, rgba(110,170,90,0.95) 0%, rgba(110,170,90,0.95) 60%, transparent 100%)',
+          }}
+        />
+      </div>
 
-      {/* Bottom area - button and credits overlay */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center pb-16">
+      {/* Bottom area - moved up to avoid covering "制作人: jamin" in the image */}
+      <div className="absolute bottom-[18%] left-0 right-0 z-20 flex flex-col items-center">
         {/* Start button */}
         <button
           onClick={handleStart}
