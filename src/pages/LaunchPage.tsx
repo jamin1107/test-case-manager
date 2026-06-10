@@ -12,48 +12,78 @@ export function LaunchPage({ onStart }: LaunchPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
+
+  const loadModel = useCallback((onComplete: () => void) => {
+    const loader = new GLTFLoader();
+    setStatusText('正在加载卡皮巴拉模型...');
+    setProgress(0);
+
+    let timeoutId: number;
+
+    const tryLoad = () => {
+      // 60s timeout
+      timeoutId = window.setTimeout(() => {
+        console.warn('[GLB] Load timeout after 60s, retrying...');
+        setRetryCount((c) => c + 1);
+        tryLoad();
+      }, 60000);
+
+      loader.load(
+        GLB_PUBLIC_PATH,
+        () => {
+          clearTimeout(timeoutId);
+          setProgress(100);
+          setStatusText('加载完成！即将进入游戏...');
+          setTimeout(() => {
+            onComplete();
+          }, 600);
+        },
+        (xhr) => {
+          if (xhr.total > 0) {
+            const pct = Math.round((xhr.loaded / xhr.total) * 100);
+            setProgress(pct);
+            if (pct < 30) setStatusText('正在下载模型数据...');
+            else if (pct < 70) setStatusText('正在解析3D模型...');
+            else setStatusText('即将完成...');
+          }
+        },
+        () => {
+          clearTimeout(timeoutId);
+          console.warn('[GLB] Load failed, retrying...');
+          setRetryCount((c) => c + 1);
+          setStatusText(`加载失败，正在重试 (第 ${retryCount + 1} 次)...`);
+          setTimeout(tryLoad, 3000);
+        }
+      );
+    };
+
+    tryLoad();
+    return () => { clearTimeout(timeoutId); };
+  }, [retryCount]);
 
   const handleStart = useCallback(() => {
     setIsLoading(true);
-    setProgress(0);
-    setStatusText('正在加载卡皮巴拉模型...');
-
-    const loader = new GLTFLoader();
-    loader.load(
-      GLB_PUBLIC_PATH,
-      () => {
-        setProgress(100);
-        setStatusText('加载完成！即将进入游戏...');
-        setTimeout(() => {
-          onStart();
-        }, 600);
-      },
-      (xhr) => {
-        if (xhr.total > 0) {
-          const pct = Math.round((xhr.loaded / xhr.total) * 100);
-          setProgress(pct);
-          if (pct < 30) setStatusText('正在下载模型数据...');
-          else if (pct < 70) setStatusText('正在解析3D模型...');
-          else setStatusText('即将完成...');
-        }
-      },
-      () => {
-        setProgress(100);
-        setStatusText('模型加载异常，但你可以继续游戏');
-        setTimeout(() => {
-          onStart();
-        }, 600);
-      }
-    );
-  }, [onStart]);
+    loadModel(() => {
+      onStart();
+    });
+  }, [onStart, loadModel]);
 
   return (
     <div className="absolute inset-0 overflow-hidden select-none">
       {/* Splash image as full background */}
       <img
-        src="/splash.png"
+        src={`${import.meta.env.BASE_URL}splash.png`}
         alt="卡皮巴拉养成记"
         className="absolute inset-0 w-full h-full object-cover"
+        onError={(e) => {
+          // Fallback to CSS gradient if image fails
+          (e.currentTarget as HTMLImageElement).style.display = 'none';
+          const parent = (e.currentTarget as HTMLImageElement).parentElement;
+          if (parent) {
+            parent.style.background = 'linear-gradient(to bottom, #87CEEB 0%, #98D8C8 40%, #7BC67E 70%, #5DAF62 100%)';
+          }
+        }}
       />
 
       {/* Bottom area - button and credits overlay */}

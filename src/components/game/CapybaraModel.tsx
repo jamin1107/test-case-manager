@@ -24,26 +24,25 @@ function GLBCapybara({ animation, onClick, scale = 1 }: {
 }) {
   const groupRef = useRef<THREE.Group>(null!);
   const [model, setModel] = useState<THREE.Object3D | null>(null);
-  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    let timeoutId: number;
+    const loader = new GLTFLoader();
 
-    const tryLoad = (url: string, isRetry: boolean = false) => {
-      const loader = new GLTFLoader();
+    const tryLoad = (url: string) => {
+      let timeoutId: number;
 
-      timeoutId = window.setTimeout(() => {
-        if (!cancelled) {
-          if (!isRetry) {
-            console.warn('[GLB] Load timeout, trying CDN fallback');
-            tryLoad(GLB_CDN_URL, true);
-          } else {
-            console.error('[GLB] CDN also timed out');
-            setLoadError(true);
-          }
+      const clearAndRetry = () => {
+        clearTimeout(timeoutId);
+        if (cancelled) return;
+        // Try CDN as fallback after 60s
+        if (url === GLB_PUBLIC_PATH) {
+          console.warn('[GLB] Primary source timeout, trying CDN');
+          tryLoad(GLB_CDN_URL);
         }
-      }, 20000);
+      };
+
+      timeoutId = window.setTimeout(clearAndRetry, 60000);
 
       loader.load(
         url,
@@ -59,22 +58,22 @@ function GLBCapybara({ animation, onClick, scale = 1 }: {
           setModel(gltf.scene);
         },
         undefined,
-        (err) => {
+        () => {
           clearTimeout(timeoutId);
           if (cancelled) return;
-          if (!isRetry) {
-            console.warn('[GLB] Primary load failed, trying CDN:', err);
-            tryLoad(GLB_CDN_URL, true);
+          if (url === GLB_PUBLIC_PATH) {
+            console.warn('[GLB] Primary load failed, trying CDN');
+            tryLoad(GLB_CDN_URL);
           } else {
-            console.error('[GLB] All load attempts failed:', err);
-            setLoadError(true);
+            console.error('[GLB] CDN failed, retrying in 3s');
+            setTimeout(() => tryLoad(GLB_CDN_URL), 3000);
           }
         }
       );
     };
 
     tryLoad(GLB_PUBLIC_PATH);
-    return () => { cancelled = true; clearTimeout(timeoutId); };
+    return () => { cancelled = true; };
   }, []);
 
   useFrame((state, delta) => {
@@ -105,25 +104,6 @@ function GLBCapybara({ animation, onClick, scale = 1 }: {
     e.stopPropagation();
     onClick?.();
   }, [onClick]);
-
-  if (loadError) {
-    return (
-      <group ref={groupRef} onClick={handleClick}>
-        <mesh castShadow position={[0, 0.5, 0]}>
-          <boxGeometry args={[0.6, 0.5, 1.0]} />
-          <meshStandardMaterial color="#8B5E3C" />
-        </mesh>
-        <mesh castShadow position={[0, 0.85, 0.35]}>
-          <boxGeometry args={[0.4, 0.35, 0.35]} />
-          <meshStandardMaterial color="#8B5E3C" />
-        </mesh>
-        <mesh castShadow position={[0, 0.2, 0]} rotation={[0, 0, Math.PI / 2]}>
-          <capsuleGeometry args={[0.12, 0.3, 4, 8]} />
-          <meshStandardMaterial color="#6B4E2C" />
-        </mesh>
-      </group>
-    );
-  }
 
   if (!model) return null;
 
